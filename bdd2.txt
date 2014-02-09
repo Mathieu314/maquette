@@ -1,0 +1,4 @@
+id : 0,  état : 1,  arrivée : 1390401228,  départ : 1390401231
+id : 1,  état : 1,  arrivée : 1390401234,  départ : 1390401237
+id : 2,  état : 1,  arrivée : 1390401265,  départ : 1390401268
+id : 0,  état : 0,  arrivée : 0,  départ : 0
