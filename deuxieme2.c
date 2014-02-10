@@ -21,7 +21,7 @@
  * 
  */
 
-// compile with : gcc deuxieme.c -o deuxieme -lwiringPi
+// compile with : gcc deuxieme2.c -o deuxieme2 -lpthread -lwiringPi
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,14 +34,15 @@
 #define Y 10000
 
 int temperature = 0;
-	int lumiere = 0;
-	int magnetique = 0;
-	int presence = 0;
-	int porteOuverte = 0;
-	int chauffage = 0;
-	int tableau[X][Y]; // id | etat | heureArrivée | heureDépart
-	
-	int id = 0;
+int lumiere = 0;
+int magnetique = 0;
+int presence = 0;
+int porteOuverte = 0;
+int chauffage = 0;
+int tableau[X][Y]; // id | etat | heureArrivée | heureDépart
+int id = 0;
+int entrer = 0;
+int sortir = 0;
 
 int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 {
@@ -82,7 +83,7 @@ void exporter(int tableau[X][Y], int id)
 {
 	int i = 0;
 	FILE* bdd = NULL;
-	bdd = fopen("/home/pi/maison/sources/bdd.txt","w");
+	bdd = fopen("/home/pi/maison/sources/bdd.txt","w+");
 	for (i = 0 ; i <= id ; i++)
 	{
 		fprintf(bdd, "id : %d,  ", tableau[0][i]);
@@ -178,21 +179,23 @@ void* gestionCapteurs()
 		{
 			porteOuverte = 1;
 		}
-		else if (porteOuverte)
+		else if (porteOuverte || entrer == 1 || sortir == 1)
 		{
-			if (presence == 0)
+			if (presence == 0 || entrer == 1)
 			{
 				tableau[0][id] = id;
 				tableau[1][id] = 0;
 				tableau[2][id] = time(NULL);
 			}
-			else if (presence)
+			else if (presence || sortir == 1)
 			{
 				tableau[3][id] = time(NULL);
 				tableau[1][id] = 1;
 				++id;
 			}
 			presence = 1 - presence;
+			entrer = 0;
+			sortir = 0;
 			porteOuverte = 0;
 		}
 		//printf("Présence : %d\n\n", presence);
@@ -213,6 +216,9 @@ void* shell()
 			lumiere = 0;
 			system("gpio write 3 1"); // eteindre le chauffage
 			chauffage = 0;
+			printf("Exportation en cours ...\n");
+			exporter(tableau, id);
+			printf("Exportation réussie.\n");
 			continuer = 0; // Le shell se termine lorsque "exit" est entré. Cela rend l'exécution au main
 		}
 		else if (strcmp(commande, "temperature") == 0) {
@@ -236,6 +242,12 @@ void* shell()
 			printf("Importation en cours ...\n");
 			importer(tableau);
 			printf("Importation réussie.\n");
+		}
+		else if (strcmp(commande, "entrer") == 0) {
+			entrer = 1;
+		}
+		else if (strcmp(commande, "sortir") == 0) {
+			sortir = 1;
 		}
 			
 	}
