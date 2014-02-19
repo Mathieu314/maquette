@@ -43,6 +43,7 @@ int tableau[X][Y]; // id | etat | heureArrivée | heureDépart
 int id = 0;
 int entrer = 0;
 int sortir = 0;
+int dormir = 0;
 
 int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 {
@@ -83,7 +84,7 @@ void exporter(int tableau[X][Y], int id)
 {
 	int i = 0;
 	FILE* bdd = NULL;
-	bdd = fopen("/home/pi/maison/sources/bdd.txt","w+");
+	bdd = fopen("bdd.txt","w+");
 	for (i = 0 ; i <= id ; i++)
 	{
 		fprintf(bdd, "id : %d,  ", tableau[0][i]);
@@ -98,7 +99,7 @@ void exporter(int tableau[X][Y], int id)
 
 void importer(int tableau[X][Y]) {
 	FILE* fichier_import = NULL;
-	fichier_import = fopen("/home/pi/maison/sources/bdd2.txt","r");
+	fichier_import = fopen("bdd2.txt","r");
 	char chaine[TAILLE_MAX] = "";
 	char *nombre2 = NULL;
 	char limite = ',';
@@ -152,13 +153,20 @@ void* gestionCapteurs()
 		}
 		
 		// Lumière
-		system("cd /sys/class/gpio/ && echo 17 > export");
-		fichier = fopen("/sys/class/gpio/gpio17/value","r");
-		fscanf(fichier,"%d",&lumiere);
-		fclose(fichier);
+		if (dormir == 0)
+		{
+			system("cd /sys/class/gpio/ && echo 17 > export");
+			fichier = fopen("/sys/class/gpio/gpio17/value","r");
+			fscanf(fichier,"%d",&lumiere);
+			fclose(fichier);
+		}
+		else if (dormir)
+		{
+			lumiere = 0;
+		}
 		//printf("Lumière : %d\n", lumiere);
 		system("gpio mode 4 out");
-		if (lumiere & presence) // penser à vérifier qu'il ne soit pas l'heure de dormir
+		if (lumiere && presence) // penser à vérifier qu'il ne soit pas l'heure de dormir
 		{
 			system("gpio write 4 1");
 			//printf("Lumière allumée.\n");
@@ -178,24 +186,37 @@ void* gestionCapteurs()
 		if (magnetique == 1)
 		{
 			porteOuverte = 1;
+			if (presence)
+			{
+				sortir = 1;
+				entrer = 0;
+			}
+			else if (presence == 0)
+			{
+				entrer = 1;
+				sortir = 0;
+			}
 		}
 		else if (porteOuverte || entrer == 1 || sortir == 1)
 		{
-			if (presence == 0 || entrer == 1)
+			if (presence == 0 && entrer == 1)
 			{
 				tableau[0][id] = id;
 				tableau[1][id] = 0;
 				tableau[2][id] = time(NULL);
+				presence = 1 - presence;
+				entrer = 0;
+				sortir = 0;
 			}
-			else if (presence || sortir == 1)
+			else if (presence && sortir == 1)
 			{
 				tableau[3][id] = time(NULL);
 				tableau[1][id] = 1;
 				++id;
+				presence = 1 - presence;
+				sortir = 0;
+				entrer = 0;
 			}
-			presence = 1 - presence;
-			entrer = 0;
-			sortir = 0;
 			porteOuverte = 0;
 		}
 		//printf("Présence : %d\n\n", presence);
@@ -249,7 +270,21 @@ void* shell()
 		else if (strcmp(commande, "sortir") == 0) {
 			sortir = 1;
 		}
-			
+		else if (strcmp(commande, "dormir") == 0) {
+			dormir = 1;
+		}
+		else if (strcmp(commande, "reveil") == 0) {
+			dormir = 0;
+		}
+		else if (strcmp(commande, "aide") == 0) {
+			FILE* fichier = NULL;
+			char aide[83];
+			fichier = fopen("aide.txt", "r");
+			while (fgets(aide, 83, fichier) != NULL)
+			{
+				printf("%s", aide);
+			}
+		}
 	}
 	return NULL;
 }
@@ -264,5 +299,6 @@ int main()
 	pthread_create(&commande, NULL, shell, NULL);
 	pthread_join(commande, NULL); // On attend la fin du shell et la fonction principale se termine
 	pthread_attr_destroy(&attr);
+	system("gpio write 3 1"); // eteindre le chauffage
 	return 0;
 }

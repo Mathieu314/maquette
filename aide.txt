@@ -1,0 +1,37 @@
+----------------------------------------------------------------------------------
+-                                 MAQUETTE                                       -
+----------------------------------------------------------------------------------
+
+COMMANDES DISPONIBLES :
+
+	- "presence" : indique si il y a quelqu'un dans la maison
+
+	- "temperature" : retourne la valeur de la température
+
+	- "chauffage" : indique si le chauffage est en route
+
+	- "lumiere" : indique si la lumière est allumée
+
+	- "exporter" : exporte le tableau des entrées/sorties dans le fichier
+	  "bdd.txt" placé dans le même répertoire que le programme. Le fichier 
+	  est créé s'il n'existait pas, sinon est remplacé par le nouveau fichier
+
+	- "entrer" : fait rentrer quelqu'un sans avoir besoin d'ouvrir la porte
+
+	- "sortir" : fait sortir quelqu'un sans avoir besoin d'ouvrir la porte
+
+	- "dormir" : éteint la lumière mùême si il y a quelqu'un pour que 
+	  l'habitant puisse dormir
+
+	- "reveil" : rallume la lumière suite à l'utilisation de la commande 
+	  précédente
+
+	- "aide" : affiche cette aide
+
+AUTEUR :
+	Moneyron Mathieu
+	Pour plus de renseignements, veuillez me contacter à l'adresse : 
+	<mathieu.moneyron@laposte.net>
+
+LICENSE :
+	License GPLv3+: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>
