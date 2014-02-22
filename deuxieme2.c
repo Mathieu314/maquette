@@ -32,6 +32,8 @@
 
 #define X 4
 #define Y 10000
+#define MAX 21000
+#define MIN 19000
 
 int temperature = 0;
 int lumiere = 0;
@@ -44,17 +46,22 @@ int id = 0;
 int entrer = 0;
 int sortir = 0;
 int dormir = 0;
+int max = 0;
 
 int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 {
 	int i = 0;
 	time_t maintenant;
 	int compteur = 0;
+	if (temperature == MAX)
+		max = 1;
+	if (max && temperature == MIN)
+		max = 0;
 	if (temperature < 15000) //maintient à une température minimale de 15 degrés
 	{
 		return 1;
 	}
-	else if (temperature < 22000)
+	else if (temperature < MAX && max == 0)
 	{
 		if (presence)
 		{
