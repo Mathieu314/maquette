@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--                                 MAQUETTE                                       -
+-                               HOME-CONTROL                                     -
 ----------------------------------------------------------------------------------
 
 COMMANDES DISPONIBLES :
@@ -35,3 +35,6 @@ AUTEUR :
 
 LICENSE :
 	License GPLv3+: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>
+
+VERSION :
+	Home-Control V2.1

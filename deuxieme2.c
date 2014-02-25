@@ -32,8 +32,10 @@
 
 #define X 4
 #define Y 10000
-#define MAX 21000
-#define MIN 19000
+#define MAX 22000
+#define MIN 20000
+#define MIN_LOW 15000
+#define MAX_LOW 17000
 
 int temperature = 0;
 int lumiere = 0;
@@ -47,6 +49,27 @@ int entrer = 0;
 int sortir = 0;
 int dormir = 0;
 int max = 0;
+int maxLow = 0;
+
+void* tempLoger()
+{
+	while (1)
+	{
+		delay(60000);
+		FILE* temp = NULL;
+		temp = fopen("temperature.txt","a");
+		fprintf(temp, "%d,%d ", temperature/1000, temperature%1000);
+		time_t now;
+		now = time(NULL);
+		if (now - 60 <= tableau[3][id])
+			fprintf(temp, "arrivée\n");
+		else if (now - 60 <= tableau[4][id])
+			fprintf(temp, "départ\n");
+		else
+			fprintf(temp, "\n");
+		fclose(temp);
+	}
+}
 
 int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 {
@@ -57,7 +80,11 @@ int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 		max = 1;
 	if (max && temperature == MIN)
 		max = 0;
-	if (temperature < 15000) //maintient à une température minimale de 15 degrés
+	if (temperature == MAX_LOW)
+		maxLow = 1;
+	if (maxLow && temperature == MIN_LOW)
+		maxLow = 0;
+	if (temperature < 17000 && maxLow == 0) //maintient à une température minimale de 17 degrés
 	{
 		return 1;
 	}
@@ -70,7 +97,7 @@ int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 		maintenant = time(NULL);
 		for (i = 0; i <= id; i++)
 		{
-			if (((maintenant + 1800)%86400 >= tableau[2][i]) && ((maintenant + 1800)%86400 <= tableau[3][i]))
+			if (((maintenant + 1800)%86400 >= tableau[3][i]) && ((maintenant + 1800)%86400 <= tableau[4][i]))
 			{
 				++compteur;
 			}
@@ -79,7 +106,6 @@ int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 		{
 			if ((compteur/((tableau[3][id] - tableau[3][0])/86400)) > 0.5) // on vérifie qu'il a bien été présent au moins une fois sur deux
 			{
-				
 				return 1;
 			}
 		}
@@ -126,19 +152,20 @@ void importer(int tableau[X][Y]) {
 void* gestionCapteurs()
 {
 	time_t timestamp;
-	timestamp = time(NULL);
-
+	int etatChffg = 0;
+	int heure = 0;
 	FILE* fichier = NULL;
+	FILE* heureChauffage = NULL;
 	system("sudo modprobe w1-gpio");
 	system("sudo modprobe w1-therm");
 	while (1)
 	{
 		delay(100);
-		if (time(NULL) >= (timestamp + 1800 )) // pour 10 jours : 864000
-		{
-			exporter(tableau, id);
-			return 0;
-		}
+		//if (time(NULL) >= (timestamp + 1800 )) // pour 10 jours : 864000
+		//{
+		//	exporter(tableau, id);
+		//	return 0;
+		//}
 		// Temperature
 		fichier = fopen("/sys/bus/w1/devices/28-0000057b19e4/w1_slave","r");
 		fseek(fichier, 69, SEEK_SET);
@@ -150,12 +177,30 @@ void* gestionCapteurs()
 		{
 			system("gpio write 3 0");
 			chauffage = 1;
+			timestamp = time(NULL);
+			if (etatChffg == 0)
+			{
+				heureChauffage = fopen("chauffage.txt","a");
+				heure = timestamp;
+				fprintf(heureChauffage, "début chauffage : %d\n",heure);
+				fclose(heureChauffage);
+			}
+			etatChffg = 1;
 			//printf("Chauffage allumé.\n");
 		}
 		else 
 		{
 			system("gpio write 3 1");
 			chauffage = 0;
+			timestamp = time(NULL);
+			if (etatChffg == 1)
+			{
+				heureChauffage = fopen("chauffage.txt","a");
+				heure = timestamp;
+				fprintf(heureChauffage, "fin chauffage : %d\n\n",heure);
+				fclose(heureChauffage);
+			}
+			etatChffg = 0;
 			//printf("Chauffage éteint.\n");
 		}
 		
@@ -234,7 +279,7 @@ void* shell()
 {
 	int continuer = 1;
 	char commande[50], exit[]="exit";
-	printf("Hello Dave !\n");
+	printf("Salut !\n");
 	while (continuer == 1) {
 		printf(">: ");
 		scanf("%s", &commande);
@@ -250,7 +295,7 @@ void* shell()
 			continuer = 0; // Le shell se termine lorsque "exit" est entré. Cela rend l'exécution au main
 		}
 		else if (strcmp(commande, "temperature") == 0) {
-			printf("Temperature : %d,%d°C\n", temperature/1000, temperature%1000);
+			printf("Temperature : %d,%d°C\n", (temperature/1000), (temperature%1000));
 		}
 		else if (strcmp(commande, "presence") == 0) {
 			printf("Presence : %d\n", presence);
@@ -291,21 +336,31 @@ void* shell()
 			{
 				printf("%s", aide);
 			}
+			fclose(fichier);
 		}
 	}
-	return NULL;
+	return 0;
 }
 
 int main()
 {
+	time_t heure;
+	heure = time(NULL);
+	FILE* log = NULL;
+	log = fopen("log.txt","w");
+	fprintf(log, "début : %d\n", heure);
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	pthread_t gestion, commande;
+	pthread_t gestion, commande, tempLog;
 	pthread_create(&gestion, &attr, gestionCapteurs, NULL);
+	pthread_create(&tempLog, &attr, tempLoger, NULL);
 	pthread_create(&commande, NULL, shell, NULL);
 	pthread_join(commande, NULL); // On attend la fin du shell et la fonction principale se termine
 	pthread_attr_destroy(&attr);
 	system("gpio write 3 1"); // eteindre le chauffage
+	heure = time(NULL);
+	fprintf(log, "fin : %d\n", heure);
+	fclose(log);
 	return 0;
 }
