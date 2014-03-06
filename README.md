@@ -18,7 +18,7 @@ Then you should see a prompt like this :
 <code>Salut !<br/>>: </code><br/>
 Yes, texts and commands are in french ! (Because I'm French)
 
-For more informations about the available commands, try <code>aide</code> while running the programm, or se the "aide.txt" file.
+For more informations about the available commands, try <code>aide</code> while running the program, or se the "aide.txt" file.
 
 Legal informations
 =======
