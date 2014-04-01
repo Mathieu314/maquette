@@ -36,7 +36,7 @@
 /******************* Définition des variables *******************/
 /**/   #define X 3        /* Nombre de colones d'un tableau     */
 /**/   #define Y 10000    /* Nombre de lignes du tableau        */
-/**/   #define MAX 21000  /* Température maximale en présence   */
+/**/   #define MAX 23000  /* Température maximale en présence   */
 /**/                      /* de l'habitant                      */
 /**/   #define MIN 19000  /* Température minimale en présence   */
 /**/                      /* de l'habitant                      */
@@ -87,9 +87,24 @@
 /****************************************************************/
 
 
+/****************************************************************
+* Cette fonction permet de vider le contenu du buffer           *
+****************************************************************/
+void viderBuffer ()
+{
+	int c = 0;
+	while (c != '\n' && c != EOF)
+	{
+		c = getchar();
+	}
+}
+
+
+
+
 /*****************************************************************
 * Cette fonction enregistre toutes les minutes la température    *
-* dans un fichier.                                                    *
+* dans un fichier.                                               *
 *****************************************************************/
 void* tempLoger()
 {
@@ -109,6 +124,15 @@ void* tempLoger()
 int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 {
 	int i = 0;
+	int k = 0;
+	if (id = 0)
+	{
+		k = 0;
+	}
+	else
+	{
+		k = 1;
+	}
 	time_t maintenant;
 	int compteur = 0;
 	if (temperature == MAX)
@@ -139,7 +163,7 @@ int chauffer(int temperature, int presence, int id, int tableau[X][Y])
 		}
 		if ((tableau[2][id] - tableau[2][0]) != 0)
 		{
-			if ((compteur/((tableau[2][id-1] - tableau[2][0])/86400)) > 0.5 && id >= 1) // on vérifie qu'il a bien été présent au moins une fois sur deux
+			if ((compteur/((tableau[2][id-k] - tableau[2][0])/86400)) > 0.5 && id >= 1) // on vérifie qu'il a bien été présent au moins une fois sur deux
 			{
 				return 1; // Du chauffage est demandé
 			}
@@ -301,19 +325,21 @@ void* gestionCapteurs()
 				tableau[0][id] = id;
 				tableau[1][id] = 0;
 				tableau[2][id] = time(NULL); // Les 3 dernières lignes remplissent le tableau
-				presence = 1; // La présence passe à 1
+				presence = 1 - presence; // La présence passe à 1
 				entrer = 0;
 				sortir = 0;
 			}
-			else if (presence && sortir == 1) // Si il y avait quelqu'un
+			else if (presence == 1 && sortir == 1) // Si il y avait quelqu'un
 			{
 				tableau[3][id] = time(NULL);
 				tableau[1][id] = 1; // Ces deux lignes complètent le tableau
 				++id;
-				presence = 0; // La présence passe à 0
+				presence = 1 - presence; // La présence passe à 0
 				sortir = 0;
 				entrer = 0;
 			}
+			sortir = 0;
+			entrer = 0;
 			porteOuverte = 0;
 		}
 	}
@@ -326,14 +352,14 @@ void* gestionCapteurs()
 void* shell()
 {
 	int continuer = 1;
-	char commande[50], exit[]="exit";
+	char commande[50], exit[]="exit\n";
 	printf("Salut !\n");
 	while (continuer == 1)
-    {
+    	{
 		printf(">: ");
-		scanf("%s", &commande); // Lecture de la commande
+		fgets(commande, 50, stdin);
 		if (strcmp(commande, exit) == 0) // Si la commande "exit" est saisie
-        {
+        	{
 			printf("A bientôt !\n");
 			system("gpio write 4 0"); // eteindre la lumiere
 			lumiere = 0;
@@ -344,55 +370,62 @@ void* shell()
 			printf("Exportation réussie.\n");
 			continuer = 0; // L'interface en ligne de commande se termine lorsque "exit" est entré. Cela rend l'exécution à la fonction principale
 		}
-		else if (strcmp(commande, "temperature") == 0)
+		else if (strcmp(commande, "temperature\n") == 0)
 		{
 			printf("Temperature : %d°C\n", temperature);
 		}
-		else if (strcmp(commande, "presence") == 0)
+		else if (strcmp(commande, "presence\n") == 0)
 		{
 			printf("Presence : %d\n", presence);
 		}
-		else if (strcmp(commande, "chauffage") == 0)
+		else if (strcmp(commande, "chauffage\n") == 0)
 		{
 			printf("Chauffage : %d\n", chauffage);
 		}
-		else if (strcmp(commande, "exporter") == 0)
+		else if (strcmp(commande, "exporter\n") == 0)
 		{
 			printf("Exportation en cours ...\n");
 			exporter(tableau, id);
 			printf("Exportation réussie.\n");
 		}
-		else if (strcmp(commande, "lumiere") == 0)
+		else if (strcmp(commande, "lumiere\n") == 0)
 		{
 			printf("Lumière : %d\n", lumiere);
 		}
-		else if (strcmp(commande, "entrer") == 0)
+		else if (strcmp(commande, "entrer\n") == 0)
 		{
 			entrer = 1;
 		}
-		else if (strcmp(commande, "sortir") == 0)
+		else if (strcmp(commande, "sortir\n") == 0 && dormir == 0)
 		{
-			sortir = 1;
+			if (dormir != 1)
+			{
+				sortir = 1;
+			}
+			else
+			{
+				printf("Opération impossible : vous êtes en train de dormir.");
+			}
 		}
-		else if (strcmp(commande, "dormir") == 0)
+		else if (strcmp(commande, "dormir\n") == 0)
 		{
 			dormir = 1;
 		}
-		else if (strcmp(commande, "reveil") == 0)
+		else if (strcmp(commande, "reveil\n") == 0)
 		{
 			dormir = 0;
 		}
-		else if (strcmp(commande, "importer") == 0)
+		else if (strcmp(commande, "importer\n") == 0)
 		{
-		    printf("Importation en cours ...\n");
-			importer();
-			printf("Importation réussie.\n");
+		    	printf("Importation en cours ...\n");
+		    	importer();
+		    	printf("Importation réussie.\n");
 		}
-		else if (strcmp(commande, "id") == 0)
+		else if (strcmp(commande, "id\n") == 0)
 		{
 			printf("id : %d\n", id);
 		}
-		else if (strcmp(commande, "aide") == 0)
+		else if (strcmp(commande, "aide\n") == 0)
 		{
 			FILE* fichier = NULL;
 			char aide[83];
@@ -402,6 +435,11 @@ void* shell()
 				printf("%s", aide);
 			}
 			fclose(fichier);
+		}
+		else
+		{
+			printf("Commande inconnue.");
+			viderBuffer();
 		}
 	}
 	return 0;
