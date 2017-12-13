@@ -27,4 +27,4 @@ This software is distributed under the GNU General Public License
 About the author
 ======
 Mathieu Moneyron<br/>
-Please contact me at <mathieu.moneyron@laposte.net>
+Please contact me at <mathieu.moneyron@gmail.com>
